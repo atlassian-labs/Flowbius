@@ -1,0 +1,19 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.kotlin.stdlib
+    implementation libs.kotlinx.coroutines
+
+    api libs.mobius.core
+    testImplementation libs.mobius.test
+
+    testImplementation libs.junit
+
+    testImplementation libs.turbine
+}

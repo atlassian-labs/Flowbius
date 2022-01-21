@@ -1,16 +1,2 @@
-plugins {
-    // Because we expect to use Mobius with Compose, we track the latest stable version of Kotlin compatible w/ Compose
-    // For more info, see here: https://developer.android.com/jetpack/androidx/releases/compose-kotlin
-    id 'org.jetbrains.kotlin.jvm' version '1.5.31'
-}
-
 group 'com.trello.flowbius'
 version '0.1.0-SNAPSHOT'
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib"
-}
