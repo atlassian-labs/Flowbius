@@ -7,6 +7,7 @@ import com.spotify.mobius.Mobius
 import com.spotify.mobius.Next.next
 import com.spotify.mobius.runners.ImmediateWorkRunner
 import com.spotify.mobius.test.RecordingConnection
+import com.spotify.mobius.test.RecordingConsumer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
@@ -17,6 +18,26 @@ import kotlin.time.ExperimentalTime
 
 @ExperimentalTime
 class FlowMobiusLoopTest {
+
+  @Test
+  fun loop() = runBlocking {
+    val recordingConsumer = RecordingConsumer<Boolean>()
+
+    val loop = FlowMobius.loop<String, Int, Boolean>(
+      update = { model, event -> next(model + event.toString(), setOf(true)) },
+      effectHandler = subtypeEffectHandler { addConsumer(recordingConsumer) }
+    )
+      .eventRunner(::ImmediateWorkRunner)
+      .effectRunner(::ImmediateWorkRunner)
+      .startFrom("Hello")
+
+    assertEquals("Hello", loop.mostRecentModel)
+    recordingConsumer.assertValues()
+
+    loop.dispatchEvent(5)
+    assertEquals("Hello5", loop.mostRecentModel)
+    recordingConsumer.assertValues(true)
+  }
 
   @Test
   fun startModelAndEffects() = runBlocking {
