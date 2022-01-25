@@ -10,6 +10,8 @@ dependencyResolutionManagement {
             version('kotlin', '1.5.31')
             version('mobius', '1.5.8')
 
+            alias('gradle-maven-publish-plugin').to('com.vanniktech:gradle-maven-publish-plugin:0.18.0')
+
             alias('junit').to('junit:junit:4.13.2')
 
             alias('kotlin-jvm').toPluginId('org.jetbrains.kotlin.jvm').versionRef('kotlin')
