@@ -3,6 +3,6 @@ Change Log
 
 ## Version 0.1.0
 
-_2022-MM-DD_
+_2022-02-07_
 
 * Initial release
