@@ -1,0 +1,17 @@
+[versions]
+# Because we use Mobius with Compose, we track the latest stable version of Kotlin compatible w/ Compose
+# For more info, see here: https://developer.android.com/jetpack/androidx/releases/compose-kotlin
+kotlin = "1.5.31"
+mobius = "1.5.8"
+
+[libraries]
+gradle-maven-publish-plugin = "com.vanniktech:gradle-maven-publish-plugin:0.18.0"
+junit = "junit:junit:4.13.2"
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlinx-coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
+mobius-core = { module = "com.spotify.mobius:mobius-core", version.ref = "mobius" }
+mobius-test = { module = "com.spotify.mobius:mobius-test", version.ref = "mobius" }
+turbine = "app.cash.turbine:turbine:0.7.0"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
