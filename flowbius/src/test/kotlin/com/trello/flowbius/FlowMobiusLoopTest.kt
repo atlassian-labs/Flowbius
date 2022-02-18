@@ -8,8 +8,12 @@ import com.spotify.mobius.Next.next
 import com.spotify.mobius.runners.ImmediateWorkRunner
 import com.spotify.mobius.test.RecordingConnection
 import com.spotify.mobius.test.RecordingConsumer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -133,4 +137,35 @@ class FlowMobiusLoopTest {
     assertEquals(0, connection.valueCount())
   }
 
+  /**
+   * [Dispatchers.Unconfined] has unfortunate nested behavior for us, which is that its order of execution is undefined.
+   * This can cause problems where start effects aren't ever handled because the start effect fires *before* the loop
+   * is fully configured. This test verifies that we won't miss start effects in this situation.
+   */
+  @Test
+  fun startEffectWorksWithUnconfinedDispatchers() = runBlocking {
+    data class LoadEffect(val id: String)
+    data class LoadEvent(val id: String)
+
+    val job = launch(Dispatchers.Unconfined) {
+      val loop = FlowMobius.loop<String, LoadEvent, LoadEffect>(
+        update = { _, event -> next("Loaded data: ${event.id}") },
+        context = Dispatchers.Unconfined,
+        effectHandler = subtypeEffectHandler { addTransformer<LoadEffect> { s -> s.map { LoadEvent(it.id) } } }
+      )
+        .eventRunner(::ImmediateWorkRunner)
+        .effectRunner(::ImmediateWorkRunner)
+        .startFrom("No data loaded", setOf(LoadEffect("abc")))
+
+      // I hate to add this delay, but we have to give the loop a suspend point with which to initially process data.
+      //
+      // This implies that the start effect will not *immediately* fire off on loop startup, which is unfortunate
+      // but unavoidable given what happens with scheduling nested Dispatchers.Unconfined launches.
+      delay(10)
+
+      assertEquals("Loaded data: abc", loop.mostRecentModel)
+    }
+
+    job.join()
+  }
 }
