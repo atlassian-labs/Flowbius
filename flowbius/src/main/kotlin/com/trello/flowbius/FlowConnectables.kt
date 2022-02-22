@@ -4,10 +4,7 @@ import com.spotify.mobius.Connectable
 import com.spotify.mobius.Connection
 import com.spotify.mobius.functions.Consumer
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.SendChannel
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.channels.onFailure
-import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.flow.*
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -22,20 +19,23 @@ private class FlowConnectable<I, O>(
   private val mapper: FlowTransformer<I, O>
 ) : Connectable<I, O> {
   override fun connect(output: Consumer<O>): Connection<I> {
-    val sharedFlow = MutableSharedFlow<I>(extraBufferCapacity = Int.MAX_VALUE)
+    val channel = Channel<I>()
 
     val job = GlobalScope.launch(Dispatchers.Unconfined + context, start = CoroutineStart.ATOMIC) {
-      sharedFlow
+      channel.receiveAsFlow()
         .run { mapper(this) }
         .collect { output.accept(it) }
     }
 
     return object : Connection<I> {
       override fun accept(value: I) {
-        sharedFlow.tryEmit(value)
+        channel.trySendBlocking(value)
       }
 
-      override fun dispose() = job.cancel()
+      override fun dispose() {
+        channel.close()
+        job.cancel()
+      }
     }
   }
 }
