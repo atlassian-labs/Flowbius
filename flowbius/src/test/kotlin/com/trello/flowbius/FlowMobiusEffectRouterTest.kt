@@ -3,7 +3,6 @@ package com.trello.flowbius
 import app.cash.turbine.test
 import com.spotify.mobius.functions.Function
 import com.spotify.mobius.test.RecordingConsumer
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -19,7 +18,6 @@ class FlowMobiusEffectRouterTest {
   private lateinit var consumer: RecordingConsumer<TestEffect.C>
   private lateinit var action: TestAction
   private lateinit var router: FlowTransformer<TestEffect, TestEvent>
-  private lateinit var sharedFlow: MutableSharedFlow<TestEffect>
 
   @Before
   fun setup() {
@@ -33,7 +31,6 @@ class FlowMobiusEffectRouterTest {
       addFunction<TestEffect.E> { e -> TestEvent.E(e.id) }
       addFunction(Function<TestEffect.F, TestEvent> { value -> TestEvent.F(value.id) })
     }
-    sharedFlow = MutableSharedFlow(extraBufferCapacity = 1)
   }
 
   @Test
