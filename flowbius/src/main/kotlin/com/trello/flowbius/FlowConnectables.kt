@@ -19,21 +19,20 @@ private class FlowConnectable<I, O>(
   private val mapper: FlowTransformer<I, O>
 ) : Connectable<I, O> {
   override fun connect(output: Consumer<O>): Connection<I> {
-    val channel = Channel<I>()
+    val sharedFlow = MutableSharedFlow<I>(replay = 1, extraBufferCapacity = Int.MAX_VALUE)
 
     val job = GlobalScope.launch(Dispatchers.Unconfined + context, start = CoroutineStart.ATOMIC) {
-      channel.receiveAsFlow()
+      sharedFlow
         .run { mapper(this) }
         .collect { output.accept(it) }
     }
 
     return object : Connection<I> {
       override fun accept(value: I) {
-        channel.trySendBlocking(value)
+        sharedFlow.tryEmit(value)
       }
 
       override fun dispose() {
-        channel.close()
         job.cancel()
       }
     }
