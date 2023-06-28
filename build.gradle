@@ -2,9 +2,6 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath libs.gradle.maven.publish.plugin
-    }
 }
 
 group 'com.trello.flowbius'

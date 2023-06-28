@@ -1,8 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.gradle.maven.publish.plugin)
 }
-
-apply plugin: 'com.vanniktech.maven.publish'
 
 compileKotlin {
     kotlinOptions.jvmTarget = '1.8'
