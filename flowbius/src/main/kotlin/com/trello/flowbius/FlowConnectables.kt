@@ -6,6 +6,8 @@ import com.spotify.mobius.functions.Consumer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -19,21 +21,38 @@ private class FlowConnectable<I, O>(
   private val mapper: FlowTransformer<I, O>
 ) : Connectable<I, O> {
   override fun connect(output: Consumer<O>): Connection<I> {
-    val sharedFlow = MutableSharedFlow<I>(replay = 1, extraBufferCapacity = Int.MAX_VALUE)
+    val sharedFlow = MutableSharedFlow<I>(replay = 0, extraBufferCapacity = Int.MAX_VALUE)
 
-    val job = GlobalScope.launch(Dispatchers.Unconfined + context, start = CoroutineStart.ATOMIC) {
+    val connectableJob = Job()
+    val connectableScope = CoroutineScope(connectableJob + Dispatchers.Unconfined + context)
+
+    connectableScope.launch(start = CoroutineStart.ATOMIC) {
       sharedFlow
-        .run { mapper(this) }
+        .run {
+          mapper(this)
+        }
         .collect { output.accept(it) }
     }
 
     return object : Connection<I> {
+      private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        if (throwable is NoSuchElementException) {
+          // flow was cancelled before receiving a subscriber, no need to handle
+        } else {
+          throw throwable
+        }
+      }
+
       override fun accept(value: I) {
-        sharedFlow.tryEmit(value)
+        connectableScope.launch(exceptionHandler) {
+          // Wait for a subscription before emitting!
+          sharedFlow.subscriptionCount.first { it > 0 }
+          sharedFlow.emit(value)
+        }
       }
 
       override fun dispose() {
-        job.cancel()
+        connectableJob.cancel()
       }
     }
   }

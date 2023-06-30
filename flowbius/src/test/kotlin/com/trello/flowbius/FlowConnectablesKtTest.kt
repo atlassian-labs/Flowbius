@@ -4,10 +4,11 @@ import app.cash.turbine.test
 import com.spotify.mobius.Connectable
 import com.spotify.mobius.Connection
 import com.spotify.mobius.test.RecordingConsumer
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.util.concurrent.CyclicBarrier
@@ -35,6 +36,32 @@ class FlowConnectablesKtTest {
 
     // Verify that after disposing, we get no more values
     connection.dispose()
+    assertEquals(0, consumer.valueCount())
+  }
+
+  @Test
+  fun awaitSubscriptions() = runTest(UnconfinedTestDispatcher()) {
+    val consumer = RecordingConsumer<Int>()
+
+    val transformer = { source: Flow<String> -> source.flatMapConcat { flowOf(it.length, it.length * 2) } }
+    val connectable = transformer.asConnectable()
+
+    // Run in quick sequence to ensure we're waiting on the subscription to occur before emitting results
+    val connection = async {
+      val currentConnection = connectable.connect(consumer)
+      currentConnection.accept("one")
+      currentConnection.accept("three")
+      currentConnection.accept("ten")
+      currentConnection.accept("five")
+      currentConnection
+    }
+    advanceUntilIdle()
+
+    consumer.assertValues(3, 6, 5, 10, 3, 6, 4, 8)
+    consumer.clearValues()
+
+    // Verify that after disposing, we get no more values
+    connection.await().dispose()
     assertEquals(0, consumer.valueCount())
   }
 
@@ -85,7 +112,7 @@ class FlowConnectablesKtTest {
   }
 
   @Test
-  fun mapShouldPropagateCompletion() = runBlocking {
+  fun mapShouldPropagateCompletion() = runTest {
     val connectable = Connectable<String, Int> { output ->
       object : Connection<String> {
         override fun accept(value: String) = output.accept(value.length)
@@ -103,7 +130,7 @@ class FlowConnectablesKtTest {
   }
 
   @Test
-  fun mapShouldPropagateErrorsFromConnectable() = runBlocking {
+  fun mapShouldPropagateErrorsFromConnectable() = runTest {
     val crashingCollectable = Connectable<String, Int> {
       object : Connection<String> {
         override fun accept(value: String) = error("crashing!")
@@ -117,7 +144,7 @@ class FlowConnectablesKtTest {
   }
 
   @Test
-  fun mapShouldPropagateErrorsFromUpstream() = runBlocking {
+  fun mapShouldPropagateErrorsFromUpstream() = runTest {
     val connectable = Connectable<String, Int> { output ->
       object : Connection<String> {
         override fun accept(value: String) = output.accept(value.length)
