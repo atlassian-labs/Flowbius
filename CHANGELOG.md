@@ -1,5 +1,10 @@
 Change Log
 ==========
+## Version 0.1.2
+_2024-04-10
+
+* Fixes an issue in `FlowConnectable` that could emit data before the subscribing flow is complete, potentially dropping data.
+
 ## Version 0.1.1
 
 _2022-10-27_
