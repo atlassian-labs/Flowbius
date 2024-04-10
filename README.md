@@ -41,7 +41,7 @@ val loop = FlowMobius.loop<Model, Event, Effect>(
 You can retrieve Flowbius from [Maven Central](https://search.maven.org/artifact/com.trello.flowbius/flowbius).
 
 ```
-implementation 'com.trello.flowbius:flowbius:0.1.1'
+implementation 'com.trello.flowbius:flowbius:0.1.3'
 ```
 
 ## Tests
